@@ -1,0 +1,90 @@
+name: 自动发布 Release
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '指定版本号（如 v2.1.0），留空则自动递增'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 确定版本号
+        id: version
+        run: |
+          # 1) 手动指定版本
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> "$GITHUB_OUTPUT"
+            echo "trigger=manual" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # 2) tag 触发 (push v*)
+          if [ "${{ github.event_name }}" = "push" ] && [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            echo "version=$TAG" >> "$GITHUB_OUTPUT"
+            echo "trigger=tag" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # 3) push main 或手动留空：读取最新 tag 自动递增，首次为 v2.0.1
+          latest=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          latest="${latest#v}"
+          IFS='.' read -r maj min pat <<< "$latest"
+          if [ "$maj" = "0" ] && [ "$min" = "0" ] && [ "$pat" = "0" ]; then
+            echo "version=v2.0.1" >> "$GITHUB_OUTPUT"
+          else
+            pat=$((pat+1))
+            echo "version=v${maj}.${min}.${pat}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "trigger=auto" >> "$GITHUB_OUTPUT"
+
+      - name: 打印版本
+        run: echo "本次发布版本 ${{ steps.version.outputs.version }}（触发方式：${{ steps.version.outputs.trigger }}）"
+
+      - name: 打包 zip
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zip
+          rm -f kwke-theme.zip
+          zip -r kwke-theme.zip . -x ".git/*" ".github/*" "config.php" ".htaccess" "*.zip"
+          ls -lh kwke-theme.zip
+
+      - name: 打 tag（仅自动递增 / 手动时）
+        if: steps.version.outputs.trigger != 'tag'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag ${{ steps.version.outputs.version }}
+          git push origin ${{ steps.version.outputs.version }}
+
+      - name: 创建 Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.version }}
+          name: KWKE-Theme ${{ steps.version.outputs.version }}
+          body: |
+            自动发布 KWKE-Theme **${{ steps.version.outputs.version }}**。
+
+            ## 包含内容
+            - 前端页面：`index.php` / `header.php` / `footer.php` / `functions.php`
+            - 前端资源：`assets/` + `dist/styles.css`
+            - 后台插件：`user/plugins/kwke-backend/`
+
+            ## 使用方式
+            下载 `kwke-theme.zip`，解压覆盖到 YOURLS 安装目录即可。
+          files: kwke-theme.zip
+          draft: false
+          prerelease: false
