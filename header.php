@@ -234,4 +234,11 @@
                 }
             }
         </style>
+        <?php
+        // 统计代码（Google Analytics、百度统计等）
+        $tracking_code = yourls_get_option( 'kwke_tracking_code', '' );
+        if (!empty($tracking_code)) {
+            echo "\n" . $tracking_code . "\n";
+        }
+        ?>
     </head>
