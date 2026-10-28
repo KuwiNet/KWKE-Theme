@@ -37,6 +37,14 @@ function kwke_head_scripts() {
     echo '<link rel="stylesheet" href="' . $url . '/assets/css/animate.min.css">';
     echo '<script src="' . $url . '/assets/js/theme.js"></script>';
 
+    // 统计代码（仅在前端公开页输出，不在后台输出）
+    if (!function_exists('yourls_is_admin') || !yourls_is_admin()) {
+        $tracking_code = yourls_get_option( 'kwke_tracking_code', '' );
+        if (!empty($tracking_code)) {
+            echo "\n" . $tracking_code . "\n";
+        }
+    }
+
     // 隐藏导航里的 Ozh 链接
     echo '<style>nav li:has(a[href*="ozh.org"]) { display: none !important; }</style>';
 
@@ -385,6 +393,7 @@ function kwke_do_settings_page() {
     $admin_logo_url = yourls_get_option( 'kwke_admin_logo_url', '/user/plugins/kwke-backend/assets/img/logo_white.png' );
     $login_logo_url = yourls_get_option( 'kwke_login_logo_url', '/user/plugins/kwke-backend/assets/img/logo_white.png' );
     $favicon_url   = yourls_get_option( 'kwke_favicon_url', '/assets/img/favicon.ico' );
+    $tracking_code = yourls_get_option( 'kwke_tracking_code', '' );
 
     $nonce = yourls_create_nonce( 'kwke_settings' );
 
@@ -542,6 +551,15 @@ function kwke_do_settings_page() {
             </div>
         </div>
 
+        <h2 class="section-title">统计代码</h2>
+        <div class="setting-row">
+            <div class="setting-label">统计代码</div>
+            <div class="setting-field">
+                <textarea name="kwke_tracking_code" id="kwke_tracking_code" rows="6" placeholder='粘贴统计代码，如 Google Analytics、百度统计、51.la 等&#10;例如：&lt;script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXX"&gt;&lt;/script&gt;'>$tracking_code</textarea>
+                <p class="description">粘贴第三方统计/分析代码（如 Google Analytics、百度统计等），将在前端公开页 &lt;head&gt; 中输出。留空则不输出。</p>
+            </div>
+        </div>
+
         <p class="submit">
             <input type="submit" name="kwke_save_settings" value="保存设置" class="button button-primary" />
         </p>
@@ -565,6 +583,7 @@ function kwke_settings_update() {
     yourls_update_option( 'kwke_wallpaper_custom_url', esc_url_raw( $_POST['kwke_wallpaper_custom_url'] ?? '' ) );
     yourls_update_option( 'kwke_allow_public', isset( $_POST['kwke_allow_public'] ) );
     yourls_update_option( 'kwke_show_custom_url', isset( $_POST['kwke_show_custom_url'] ) );
+    yourls_update_option( 'kwke_tracking_code', trim($_POST['kwke_tracking_code'] ?? '') );
 
     // 解析页脚链接
     $footer_links_text = trim($_POST['kwke_footer_links'] ?? '');
