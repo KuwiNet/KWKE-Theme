@@ -11,6 +11,26 @@ Author URI: https://zwrt.de
 // No direct call
 if( !defined( 'YOURLS_ABSPATH' ) ) die();
 
+// ========== 短网址跳转统计 ==========
+yourls_add_filter( 'pre_redirect_shorturl', 'kwke_tracking_redirect', 10, 2 );
+function kwke_tracking_redirect( $url, $keyword ) {
+    $tracking_code = yourls_get_option( 'kwke_tracking_code', '' );
+    if (empty($tracking_code)) {
+        return $url; // 未配置统计代码，正常 302 跳转
+    }
+    // 输出过渡页：带统计代码 + JS 自动跳转（几乎无感，约 100ms）
+    $target = htmlspecialchars($url, ENT_QUOTES);
+    echo '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">';
+    echo '<title>跳转中...</title>';
+    echo $tracking_code;
+    echo '<script>setTimeout(function(){window.location.href="' . $target . '";}, 100);</script>';
+    echo '</head><body style="margin:0;padding:0;background:#f5f5f5;display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;color:#666;">';
+    echo '<p>正在跳转...</p>';
+    echo '<noscript><a href="' . $target . '">点击跳转</a></noscript>';
+    echo '</body></html>';
+    exit; // 输出页面后结束，不让 YOURLS 再发 302
+}
+
 // ========== 后台主题注入 ==========
 yourls_add_action( 'html_head', 'kwke_head_scripts' );
 
