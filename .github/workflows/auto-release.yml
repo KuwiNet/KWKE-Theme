@@ -54,6 +54,16 @@ jobs:
       - name: 打印版本
         run: echo "本次发布版本 ${{ steps.version.outputs.version }}（触发方式：${{ steps.version.outputs.trigger }}）"
 
+      - name: 自动更新 plugin.php 版本号
+        run: |
+          # 去掉 v 前缀，如 v2.0.5 → 2.0.5
+          VER="${{ steps.version.outputs.version }}"
+          VER="${VER#v}"
+          # 替换 plugin.php 头部 Version: 行
+          sed -i "s/^Version: .*$/Version: $VER/" user/plugins/kwke-backend/plugin.php
+          echo "已更新 plugin.php 版本号为 $VER"
+          grep "^Version:" user/plugins/kwke-backend/plugin.php
+
       - name: 打包 zip
         run: |
           sudo apt-get update
