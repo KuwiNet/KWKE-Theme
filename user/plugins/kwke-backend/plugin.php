@@ -4,8 +4,8 @@ Plugin Name: KWKE Backend
 Plugin URI: https://github.com/kuwinet/kwke-theme
 Description: KWKE 风格的 YOURLS 主题 + 全局配置中心
 Version: 2.0.4
-Author: KuWiNet
-Author URI: https://zwrt.de
+Author: KuWi
+Author URI: https://kuwi.net
 */
 
 // No direct call
